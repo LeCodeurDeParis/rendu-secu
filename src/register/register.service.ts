@@ -35,7 +35,7 @@ export class RegisterService {
           name: body.name,
           email: body.email,
           password: hashedPassword,
-          roleId: 1,
+          roleId: 2,
         })
         .returning();
 
