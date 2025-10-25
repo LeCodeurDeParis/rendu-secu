@@ -3,7 +3,6 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class RateLimiterService {
   private attempts = new Map<string, number>();
-  private readonly maxAttempts = 1;
   private readonly windowMs = 5000;
 
   canAttempt(identifier: string): boolean {

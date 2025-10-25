@@ -96,7 +96,11 @@ export class AuthPermissionGuard implements CanActivate {
       const tokenCreatedAt = new Date((decoded as any).iat * 1000);
       const passwordUpdatedAt = new Date(user.passwordUpdatedAt);
 
-      if (passwordUpdatedAt > tokenCreatedAt) {
+      const tokenCreatedAtUTC = new Date(
+        tokenCreatedAt.getTime() - tokenCreatedAt.getTimezoneOffset() * 60000,
+      );
+
+      if (passwordUpdatedAt.getTime() > tokenCreatedAtUTC.getTime()) {
         throw new UnauthorizedException(
           'Token expiré - mot de passe modifié. Veuillez vous reconnecter.',
         );
@@ -170,7 +174,12 @@ export class AuthPermissionGuard implements CanActivate {
       const user = userWithRole[0].user;
       const role = userWithRole[0].role;
 
-      if (user.password !== password) {
+      // Vérifier le mot de passe avec bcrypt
+      const isPasswordValid = await this.authService.verifyPassword(
+        password,
+        user.password,
+      );
+      if (!isPasswordValid) {
         return false;
       }
 

@@ -55,14 +55,6 @@ export class UserService {
       if (!user.length) {
         throw new UnauthorizedException('Utilisateur introuvable');
       }
-      const tokenCreatedAt = new Date((decoded as any).iat * 1000);
-      const passwordUpdatedAt = new Date(user[0].passwordUpdatedAt);
-
-      if (passwordUpdatedAt > tokenCreatedAt) {
-        throw new UnauthorizedException(
-          'Token expiré - mot de passe modifié. Veuillez vous reconnecter.',
-        );
-      }
 
       return user[0];
     } catch (error) {
@@ -106,10 +98,13 @@ export class UserService {
   ) {
     const user = await this.authenticateUser(authHeader, apiKey);
 
+    // Hacher le nouveau mot de passe
+    const hashedPassword = await this.authService.hashPassword(newPassword!);
+
     await db
       .update(usersTable)
       .set({
-        password: newPassword,
+        password: hashedPassword, // Utiliser le mot de passe haché
         passwordUpdatedAt: new Date(),
       })
       .where(eq(usersTable.id, user.id));

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
+import * as bcrypt from 'bcrypt';
 import { UserDTO } from 'src/DTO/userDTO';
 
 @Injectable()
@@ -39,5 +40,28 @@ export class AuthService {
       return null;
     }
     return authHeader.substring(7);
+  }
+
+  /**
+   * Hache un mot de passe avec bcrypt
+   * @param password Mot de passe en clair
+   * @returns Mot de passe haché
+   */
+  async hashPassword(password: string): Promise<string> {
+    const saltRounds = 12;
+    return await bcrypt.hash(password, saltRounds);
+  }
+
+  /**
+   * Vérifie un mot de passe contre son hash
+   * @param password Mot de passe en clair
+   * @param hashedPassword Mot de passe haché
+   * @returns true si le mot de passe correspond
+   */
+  async verifyPassword(
+    password: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
+    return await bcrypt.compare(password, hashedPassword);
   }
 }

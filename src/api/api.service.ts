@@ -3,17 +3,21 @@ import { db } from 'src/index';
 import { apiKeysTable, usersTable } from 'src/db/schema';
 import { and, eq } from 'drizzle-orm';
 import * as crypto from 'crypto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class ApiKeysService {
   async generateApiKey(userId: number, name: string) {
     try {
       const apiKey = `sk_${crypto.randomBytes(32).toString('hex')}`;
+      const hashedKey = await bcrypt.hash(apiKey, 12);
+      console.log(apiKey);
+      console.log(hashedKey);
 
       const result = await db
         .insert(apiKeysTable)
         .values({
-          key: apiKey,
+          key: hashedKey,
           name: name || 'Clé API',
           userId,
           isActive: true,
@@ -25,7 +29,7 @@ export class ApiKeysService {
         data: {
           id: result[0].id,
           name: result[0].name,
-          key: result[0].key,
+          key: apiKey,
           createdAt: result[0].createdAt,
         },
       };
@@ -34,6 +38,39 @@ export class ApiKeysService {
         `Erreur lors de la génération de la clé API: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
+  }
+
+  async validateApiKey(apiKey: string) {
+    const apiKeyRecords = await db
+      .select({
+        apiKey: apiKeysTable,
+        user: usersTable,
+      })
+      .from(apiKeysTable)
+      .leftJoin(usersTable, eq(apiKeysTable.userId, usersTable.id))
+      .where(eq(apiKeysTable.isActive, true));
+
+    if (!apiKeyRecords.length || !apiKeyRecords[0].apiKey.isActive) {
+      throw new UnauthorizedException('Clé API invalide ou inactive');
+    }
+
+    for (const record of apiKeyRecords) {
+      try {
+        const isValid = await bcrypt.compare(apiKey, record.apiKey.key);
+        if (isValid) {
+          await db
+            .update(apiKeysTable)
+            .set({ lastUsedAt: new Date() })
+            .where(eq(apiKeysTable.id, record.apiKey.id));
+
+          return record.user;
+        }
+      } catch (error) {
+        continue;
+      }
+    }
+
+    throw new UnauthorizedException('Clé API invalide ou inactive');
   }
 
   async getUserApiKeys(userId: number) {
@@ -55,28 +92,6 @@ export class ApiKeysService {
     };
   }
 
-  async validateApiKey(apiKey: string) {
-    const apiKeyRecord = await db
-      .select({
-        apiKey: apiKeysTable,
-        user: usersTable,
-      })
-      .from(apiKeysTable)
-      .leftJoin(usersTable, eq(apiKeysTable.userId, usersTable.id))
-      .where(eq(apiKeysTable.key, apiKey))
-      .limit(1);
-
-    if (!apiKeyRecord.length || !apiKeyRecord[0].apiKey.isActive) {
-      throw new UnauthorizedException('Clé API invalide ou inactive');
-    }
-
-    await db
-      .update(apiKeysTable)
-      .set({ lastUsedAt: new Date() })
-      .where(eq(apiKeysTable.id, apiKeyRecord[0].apiKey.id));
-
-    return apiKeyRecord[0].user;
-  }
   async reactivateApiKey(userId: number, apiKeyId: number) {
     const result = await db
       .update(apiKeysTable)

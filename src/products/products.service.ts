@@ -7,21 +7,6 @@ import { ShopifyService } from 'src/shopify/shopify.service';
 @Injectable()
 export class ProductsService {
   constructor(private readonly shopifyService: ShopifyService) {}
-  async createTestProduct(shopifyId: string, userId: number) {
-    const result = await db
-      .insert(productsTable)
-      .values({
-        shopify_id: shopifyId,
-        created_by: userId,
-        sales_count: 0,
-      })
-      .returning();
-
-    return {
-      message: 'Produit test créé',
-      data: result[0],
-    };
-  }
   async createProduct(
     productData: {
       title: string;
@@ -45,7 +30,7 @@ export class ProductsService {
       const result = await db
         .insert(productsTable)
         .values({
-          shopify_id: shopifyProduct.shopify_id,
+          shopify_id: productData.shopify_id || shopifyProduct.shopify_id,
           created_by: userId,
           sales_count: 0,
           image_url: productData.image_url || null,

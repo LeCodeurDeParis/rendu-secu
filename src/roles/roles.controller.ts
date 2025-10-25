@@ -30,6 +30,9 @@ export class RolesController {
       can_post_login: boolean;
       can_get_my_user: boolean;
       can_get_users: boolean;
+      can_post_products: boolean;
+      can_post_product_with_image: boolean;
+      can_get_bestsellers: boolean;
     },
   ) {
     return await this.rolesService.createRole(roleData);

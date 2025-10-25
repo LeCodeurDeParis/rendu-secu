@@ -24,22 +24,41 @@ export class LoginService {
           `Trop de tentatives. Réessayez dans ${Math.ceil((timeRemaining ?? 0) / 1000)} secondes.`,
         );
       }
-      const user: UserDTO[] = (await db
-        .select()
+      const user = await db
+        .select({
+          id: usersTable.id,
+          email: usersTable.email,
+          name: usersTable.name,
+          roleId: usersTable.roleId,
+          passwordUpdatedAt: usersTable.passwordUpdatedAt,
+          password: usersTable.password,
+        })
         .from(usersTable)
         .where(eq(usersTable.email, body.email))
-        .limit(1)) as UserDTO[];
+        .limit(1);
 
       if (!user.length) {
         throw new Error('Utilisateur introuvable');
       }
-      const token: string = (await jwt.sign(
-        body,
+
+      const isPasswordValid = await this.authService.verifyPassword(
+        body.password,
+        user[0].password,
+      );
+      if (!isPasswordValid) {
+        throw new Error('Mot de passe incorrect');
+      }
+      const tokenPayload = {
+        id: user[0].id,
+        email: user[0].email,
+        name: user[0].name,
+        roleId: user[0].roleId,
+      };
+      const token: string = jwt.sign(
+        tokenPayload,
         process.env.JWT_SECRET || 'default-secret',
-        {
-          expiresIn: '1h',
-        },
-      )) as string;
+        { expiresIn: '1h' },
+      ) as string;
       return { message: 'Login successful', data: token };
     } catch (error) {
       throw new Error(error as string);

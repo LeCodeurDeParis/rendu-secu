@@ -18,19 +18,6 @@ import { RequirePermissions } from 'src/middleware/permissions.decorator';
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
-  @Post('test-product')
-  @UseGuards(AuthPermissionGuard)
-  @RequirePermissions('can_post_products')
-  async createTestProduct(
-    @Body() body: { shopify_id: string },
-    @Request() req: any,
-  ) {
-    return await this.productsService.createTestProduct(
-      body.shopify_id,
-      req.user.id,
-    );
-  }
-
   @Post()
   @UseGuards(AuthPermissionGuard)
   @RequirePermissions('can_post_products')

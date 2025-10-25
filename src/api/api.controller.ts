@@ -32,7 +32,7 @@ export class ApiController {
     return await this.apiKeysService.generateApiKey(req.user.id, body.name);
   }
 
-  @Delete(':id')
+  @Delete(':id/delete')
   @UseGuards(AuthPermissionGuard)
   @RequirePermissions('can_get_my_user')
   async deleteApiKey(

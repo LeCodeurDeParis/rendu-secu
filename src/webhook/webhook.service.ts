@@ -36,8 +36,7 @@ export class WebhookService {
       let productsUpdated = 0;
 
       for (const item of lineItems) {
-        // NE PAS convertir en nombre - garder comme string !
-        const shopifyProductId = String(item.product_id);
+        const shopifyProductId = item.product_id.toString();
         const quantity = item.quantity || 1;
 
         console.log('\n--- Traitement item ---');
