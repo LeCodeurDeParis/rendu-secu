@@ -10,6 +10,7 @@ import { db } from 'src/index';
 import { usersTable, rolesTable } from 'src/db/schema';
 import { eq } from 'drizzle-orm';
 import { ApiKeysService } from 'src/api/api.service';
+import { toUtcDate, compareDatesUtc } from 'src/utils/date.utils';
 
 export const RequirePermissions = (...permissions: string[]) => {
   return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
@@ -93,17 +94,35 @@ export class AuthPermissionGuard implements CanActivate {
       const user = userWithRole[0].user;
       const role = userWithRole[0].role;
 
-      const tokenCreatedAt = new Date((decoded as any).iat * 1000);
-      const passwordUpdatedAt = new Date(user.passwordUpdatedAt);
+      if (decoded.passwordUpdatedAt) {
+        const tokenPasswordUpdatedAt = toUtcDate(decoded.passwordUpdatedAt);
+        const dbPasswordUpdatedAt = toUtcDate(user.passwordUpdatedAt);
 
-      const tokenCreatedAtUTC = new Date(
-        tokenCreatedAt.getTime() - tokenCreatedAt.getTimezoneOffset() * 60000,
-      );
-
-      if (passwordUpdatedAt.getTime() > tokenCreatedAtUTC.getTime()) {
-        throw new UnauthorizedException(
-          'Token expiré - mot de passe modifié. Veuillez vous reconnecter.',
+        console.log('=== DEBUG TOKEN VALIDATION ===');
+        console.log(
+          'Token passwordUpdatedAt (original):',
+          decoded.passwordUpdatedAt,
         );
+        console.log('=== DEBUG TOKEN VALIDATION ===');
+        console.log(
+          'Token passwordUpdatedAt:',
+          tokenPasswordUpdatedAt.toISOString(),
+        );
+        console.log('DB passwordUpdatedAt:', dbPasswordUpdatedAt.toISOString());
+        console.log(
+          'Token timestamp (UTC ms):',
+          tokenPasswordUpdatedAt.getTime(),
+        );
+        console.log('DB timestamp (UTC ms):', dbPasswordUpdatedAt.getTime());
+        console.log(
+          'Token < DB?',
+          compareDatesUtc(tokenPasswordUpdatedAt, dbPasswordUpdatedAt),
+        );
+        if (compareDatesUtc(tokenPasswordUpdatedAt, dbPasswordUpdatedAt)) {
+          throw new UnauthorizedException(
+            'Token expiré - mot de passe modifié. Veuillez vous reconnecter.',
+          );
+        }
       }
 
       request.user = user;

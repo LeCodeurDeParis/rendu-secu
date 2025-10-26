@@ -2,6 +2,7 @@ import { productsTable } from 'src/db/schema';
 import { db } from 'src/index';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
+import { getUtcDate } from 'src/utils/date.utils';
 
 export class WebhookService {
   private readonly webhookSecret = process.env.SHOPIFY_WEBHOOK_SECRET;
@@ -70,7 +71,7 @@ export class WebhookService {
             .update(productsTable)
             .set({
               sales_count: product[0].sales_count + quantity,
-              updatedAt: new Date(),
+              updatedAt: new Date(getUtcDate()),
             })
             .where(eq(productsTable.id, product[0].id))
             .returning();

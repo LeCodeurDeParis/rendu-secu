@@ -4,6 +4,7 @@ import { apiKeysTable, usersTable } from 'src/db/schema';
 import { and, eq } from 'drizzle-orm';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
+import { getUtcDate } from 'src/utils/date.utils';
 
 @Injectable()
 export class ApiKeysService {
@@ -60,7 +61,7 @@ export class ApiKeysService {
         if (isValid) {
           await db
             .update(apiKeysTable)
-            .set({ lastUsedAt: new Date() })
+            .set({ lastUsedAt: new Date(getUtcDate()) })
             .where(eq(apiKeysTable.id, record.apiKey.id));
 
           return record.user;

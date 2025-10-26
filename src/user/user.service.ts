@@ -1,9 +1,20 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { db } from 'src';
 import { AuthService } from 'src/auth/auth.service';
 import { rolesTable, usersTable } from 'src/db/schema';
 import { eq } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import { ApiKeysService } from 'src/api/api.service';
+import {
+  getUtcDate,
+  toUtcDate,
+  compareDatesUtc,
+  getUtcDateObject,
+} from 'src/utils/date.utils';
 
 @Injectable()
 export class UserService {
@@ -20,7 +31,6 @@ export class UserService {
     email: string;
     name: string;
   }> {
-    // Vérifier d'abord la clé API si elle est fournie
     if (apiKey && typeof apiKey === 'string' && apiKey.startsWith('sk_')) {
       try {
         const user = await this.apiService.validateApiKey(apiKey);
@@ -33,7 +43,6 @@ export class UserService {
       }
     }
 
-    // Sinon, vérifier le token JWT
     if (!authHeader || typeof authHeader !== 'string') {
       throw new UnauthorizedException('Token ou clé API manquante');
     }
@@ -54,6 +63,33 @@ export class UserService {
 
       if (!user.length) {
         throw new UnauthorizedException('Utilisateur introuvable');
+      }
+
+      if (decoded.passwordUpdatedAt) {
+        const tokenPasswordUpdatedAt = toUtcDate(decoded.passwordUpdatedAt);
+        const dbPasswordUpdatedAt = toUtcDate(user[0].passwordUpdatedAt);
+
+        console.log('=== DEBUG USER SERVICE AUTH ===');
+        console.log(
+          'Token passwordUpdatedAt:',
+          tokenPasswordUpdatedAt.toISOString(),
+        );
+        console.log('DB passwordUpdatedAt:', dbPasswordUpdatedAt.toISOString());
+        console.log(
+          'Token timestamp (UTC ms):',
+          tokenPasswordUpdatedAt.getTime(),
+        );
+        console.log('DB timestamp (UTC ms):', dbPasswordUpdatedAt.getTime());
+        console.log(
+          'Token < DB?',
+          compareDatesUtc(tokenPasswordUpdatedAt, dbPasswordUpdatedAt),
+        );
+
+        if (compareDatesUtc(tokenPasswordUpdatedAt, dbPasswordUpdatedAt)) {
+          throw new UnauthorizedException(
+            'Token expiré - mot de passe modifié. Veuillez vous reconnecter.',
+          );
+        }
       }
 
       return user[0];
@@ -96,16 +132,24 @@ export class UserService {
     apiKey?: string,
     newPassword?: string,
   ) {
+    if (
+      !newPassword ||
+      typeof newPassword !== 'string' ||
+      newPassword.trim().length === 0
+    ) {
+      throw new BadRequestException(
+        'Le nouveau mot de passe est requis et ne peut pas être vide',
+      );
+    }
     const user = await this.authenticateUser(authHeader, apiKey);
 
-    // Hacher le nouveau mot de passe
     const hashedPassword = await this.authService.hashPassword(newPassword!);
 
     await db
       .update(usersTable)
       .set({
-        password: hashedPassword, // Utiliser le mot de passe haché
-        passwordUpdatedAt: new Date(),
+        password: hashedPassword,
+        passwordUpdatedAt: sql`NOW()`,
       })
       .where(eq(usersTable.id, user.id));
 

@@ -3,6 +3,7 @@ import { db } from 'src/index';
 import { productsTable, usersTable } from 'src/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { ShopifyService } from 'src/shopify/shopify.service';
+import { getUtcDate } from 'src/utils/date.utils';
 
 @Injectable()
 export class ProductsService {
@@ -121,7 +122,7 @@ export class ProductsService {
       .update(productsTable)
       .set({
         sales_count: newSalesCount,
-        updatedAt: new Date(),
+        updatedAt: new Date(getUtcDate()),
       })
       .where(eq(productsTable.id, id))
       .returning();

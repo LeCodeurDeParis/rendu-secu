@@ -7,6 +7,7 @@ import { db } from 'src/index';
 import { eq } from 'drizzle-orm';
 import { RateLimiterService } from 'src/rate-limiter/rate-limiter.service';
 import { AuthService } from 'src/auth/auth.service';
+import { getUtcDateObject } from 'src/utils/date.utils';
 
 @Injectable()
 export class LoginService {
@@ -53,6 +54,7 @@ export class LoginService {
         email: user[0].email,
         name: user[0].name,
         roleId: user[0].roleId,
+        passwordUpdatedAt: user[0].passwordUpdatedAt,
       };
       const token: string = jwt.sign(
         tokenPayload,

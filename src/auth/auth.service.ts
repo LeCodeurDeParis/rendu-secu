@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
 import * as bcrypt from 'bcrypt';
 import { UserDTO } from 'src/DTO/userDTO';
+import { getUtcDate, getUtcDateObject } from 'src/utils/date.utils';
 
 @Injectable()
 export class AuthService {
@@ -10,7 +11,7 @@ export class AuthService {
   ): string {
     const tokenPayload = {
       ...payload,
-      passwordUpdatedAt: payload.passwordUpdatedAt || new Date(),
+      passwordUpdatedAt: payload.passwordUpdatedAt || getUtcDateObject(),
     };
     return jwt.sign(tokenPayload, process.env.JWT_SECRET || 'default-secret', {
       expiresIn: '1h',

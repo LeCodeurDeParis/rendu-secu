@@ -46,7 +46,11 @@ export class UserController {
     @Request() req: any,
     @Body() body: { newPassword: string },
   ) {
-    return await this.userService.changePassword(req.user, body.newPassword);
+    return await this.userService.changePassword(
+      req.headers.authorization,
+      req.headers['x-api-key'],
+      body.newPassword,
+    );
   }
 
   @Post('logout')

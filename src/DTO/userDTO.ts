@@ -1,4 +1,11 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import {
+  IsDate,
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class UserDTO {
   @IsNotEmpty()
@@ -12,4 +19,8 @@ export class UserDTO {
   @IsString()
   @MinLength(6)
   password: string;
+
+  @IsOptional()
+  @IsDate()
+  passwordUpdatedAt?: Date;
 }
